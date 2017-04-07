@@ -11,7 +11,7 @@
 // Tool Versions: 
 // Description:This is my implementation of an 8-bit Radix-4 Booth Multiplier 
 // 
-// Dependencies: 
+// Pointers:This project is a good example to understand the importance of sign-extension for signed operations
 // 
 // Revision:
 // Revision 0.01 - File Created
