@@ -36,6 +36,8 @@ parameter ADDR_SIZE = 1 << ADDR_WIDTH;
 // Wire/Reg Declarations ------------------------------------------
 reg  [ADDR_WIDTH-1:0] address;
 reg  [ADDR_WIDTH-1:0] address_reg;
+reg  [ADDR_WIDTH-1:0] addr_reg;
+reg  [ADDR_WIDTH-1:0] addr_final;
 reg  [DATA_WIDTH-1:0] memory [ADDR_SIZE-1:0]; 
 
 reg  [7:0] opcode;
@@ -164,14 +166,14 @@ always@ (posedge Sclk) begin
   end
 end
 
-// Address Register ------------------------------------------------
+// Address Management ----------------------------------------------
 always@ (*) begin
   if (Cen) begin
     address = 8'b0;
   end else if (pre_state == ADDRESS_DEC) begin
     address[address_dec_cnt] = Sin;
-  end else if ((pre_state == BURST_RD || pre_state == BURST_WR) && (data_cnt == 4'd0)) begin
-    address = address + 1'b1;  
+//  end else if ((pre_state == BURST_RD || pre_state == BURST_WR) && (data_cnt == 4'd0)) begin
+//    address = address + 1'b1;  
   end else begin
     address = address; 
   end
@@ -179,9 +181,29 @@ end
 
 always@ (posedge Sclk) begin
   if (Cen) begin
+    addr_reg <= 24'b0;
+  end else if (pre_state == ADDRESS_DEC) begin
+    addr_reg <= address;
+  end else if ((pre_state == BURST_RD || pre_state == BURST_WR) && (data_cnt_nxt == 4'd0)) begin
+    addr_reg <= addr_reg + 1'b1;
+  end
+end
+
+always@ (*) begin
+  if (pre_state == ADDRESS_DEC) begin
+    addr_final = address;
+  end else if (pre_state == BURST_RD || pre_state == BURST_WR) begin
+    addr_final = addr_reg;
+  end else begin
+    addr_final = addr_final;
+  end
+end
+
+always@ (posedge Sclk) begin
+  if (Cen) begin
     address_reg <= 24'b0;
   end else begin
-    address_reg <= address;
+    address_reg <= addr_final;
   end
 end
 
@@ -197,7 +219,7 @@ end
 // Read Mode -------------------------------------------------------
 always@ (negedge Sclk) begin
   if (next_state == BURST_RD) begin
-    Sout <= memory[address][data_cnt_nxt];
+    Sout <= memory[addr_final][data_cnt_nxt];
   end else begin
     Sout <= 1'bz;
   end
